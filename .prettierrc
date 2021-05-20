@@ -1,0 +1,13 @@
+{
+  "printWidth": 120,
+  "overrides": [
+    {
+      "files": "*.yaml",
+      "options": {
+        "useTabs": false,
+        "singleQuote": false,
+        "bracketSpacing": false
+      }
+    }
+  ]
+}
