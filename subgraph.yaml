@@ -1,4 +1,6 @@
 specVersion: 0.0.2
+description: LunarFarm
+repository: https://github.com/m00n-city/m00ncity-subgraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -6,8 +8,9 @@ dataSources:
     name: LunarFarm
     network: rinkeby
     source:
-      address: "0x5Adc6eB6cf61A2BFef9AE6A64c7236F34dF3081a"
+      address: "0xF3636957372427eF1F190eDED0B448Ac1459597b"
       abi: LunarFarm
+      startBlock: 8628846
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4

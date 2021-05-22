@@ -1,4 +1,6 @@
 specVersion: 0.0.2
+description: LunarFarm
+repository: https://github.com/m00n-city/m00ncity-subgraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -6,7 +8,7 @@ dataSources:
     name: LunarFarm
     network: {{network}}
     source:
-      address: {{address}}
+      address: "{{address}}"
       abi: LunarFarm
       startBlock: {{startBlock}}
     mapping:

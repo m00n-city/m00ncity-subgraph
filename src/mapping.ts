@@ -1,13 +1,13 @@
 import { BigInt } from "@graphprotocol/graph-ts"
 import {
-  LunarFarm,
+  LunarFarm as LunarFarmContract,
   Deposit,
   EmergencyWithdraw,
   Harvest,
   OwnershipTransferred,
   Withdraw
 } from "../generated/LunarFarm/LunarFarm"
-import { ExampleEntity } from "../generated/schema"
+import { LunarFarm, Pool, User } from "../generated/schema";
 
 export function handleDeposit(event: Deposit): void {
   // Entities can be loaded from the store using a string ID; this ID

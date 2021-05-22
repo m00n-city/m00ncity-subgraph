@@ -1,6 +1,48 @@
-type ExampleEntity @entity {
+type LunarFarm @entity {
   id: ID!
-  count: BigInt!
-  user: Bytes! # address
-  pid: BigInt! # uint256
+  lunar: Bytes!
+
+  pools: [Pool!] @derivedFrom(field: "lunarFarm")
+  poolCount: BigInt!
+
+  timestamp: BigInt!
+  block: BigInt!
+}
+
+type Pool @entity {
+  # Index of pool in poolInfo on LunarFarm contract
+  id: ID!
+  lunarFarm: LunarFarm!
+  pair: Bytes!
+
+  lunarPerSecond: BigInt!
+  startTime: BigInt!
+  endTime: BigInt!
+  lastRewardTime: BigInt!
+  accLunarPerShare: BigInt!
+  depositAmount: BigInt!
+  lunarAmount: BigInt!
+
+  #slpBalance: BigInt! replaced by depositAmount
+
+  users: [User!]! @derivedFrom(field: "pool")
+  userCount: BigInt!
+
+  timestamp: BigInt!
+  block: BigInt!
+}
+
+type User @entity {
+  # Pool id concatenated with user address
+  id: ID!
+
+  address: Bytes!
+  pool: Pool
+
+  amount: BigInt!
+  rewardDebt: BigInt!
+  lunarHarvested: BigInt!
+
+  timestamp: BigInt!
+  block: BigInt!
 }
