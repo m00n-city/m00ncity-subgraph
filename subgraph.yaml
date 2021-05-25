@@ -1,6 +1,4 @@
 specVersion: 0.0.2
-description: LunarFarm
-repository: https://github.com/m00n-city/m00ncity-subgraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -16,23 +14,35 @@ dataSources:
       apiVersion: 0.0.4
       language: wasm/assemblyscript
       entities:
+        - AddPool
         - Deposit
         - EmergencyWithdraw
         - Harvest
+        - IncreasePoolEndTime
         - OwnershipTransferred
+        - UpdatePool
         - Withdraw
+        - WithdrawRemainingReward
       abis:
         - name: LunarFarm
           file: ./abis/LunarFarm.json
       eventHandlers:
+        - event: AddPool(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleAddPool
         - event: Deposit(indexed address,indexed uint256,uint256,indexed address)
           handler: handleDeposit
         - event: EmergencyWithdraw(indexed address,indexed uint256,uint256,indexed address)
           handler: handleEmergencyWithdraw
         - event: Harvest(indexed address,indexed uint256,uint256)
           handler: handleHarvest
+        - event: IncreasePoolEndTime(indexed uint256,uint256)
+          handler: handleIncreasePoolEndTime
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
+        - event: UpdatePool(indexed uint256,uint256,uint256)
+          handler: handleUpdatePool
         - event: Withdraw(indexed address,indexed uint256,uint256,indexed address)
           handler: handleWithdraw
+        - event: WithdrawRemainingReward(indexed uint256,uint256,indexed address)
+          handler: handleWithdrawRemainingReward
       file: ./src/mapping.ts

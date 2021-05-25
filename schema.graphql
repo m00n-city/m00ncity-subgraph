@@ -13,8 +13,7 @@ type Pool @entity {
   # Index of pool in poolInfo on LunarFarm contract
   id: ID!
   lunarFarm: LunarFarm!
-  pair: Bytes!
-
+  dToken: Bytes!
   lunarPerSecond: BigInt!
   startTime: BigInt!
   endTime: BigInt!

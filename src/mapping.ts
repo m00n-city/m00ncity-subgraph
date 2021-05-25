@@ -1,69 +1,148 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, log } from "@graphprotocol/graph-ts";
 import {
   LunarFarm as LunarFarmContract,
+  AddPool,
   Deposit,
   EmergencyWithdraw,
   Harvest,
+  IncreasePoolEndTime,
   OwnershipTransferred,
-  Withdraw
-} from "../generated/LunarFarm/LunarFarm"
-import { LunarFarm, Pool, User } from "../generated/schema";
+  UpdatePool,
+  Withdraw,
+  WithdrawRemainingReward,
+} from "../generated/LunarFarm/LunarFarm";
+import { getLunarFarmContract, getLunarFarm, getPool, getUser, ZERO, ONE, ACC_PRECISION } from "./entities";
 
-export function handleDeposit(event: Deposit): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+export function handleAddPool(event: AddPool): void {
+  const { params, block } = event;
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (entity == null) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
+  log.info("[LunarFarm] AddPool({} {} {} {} {} {})", [
+    params.pid.toString(),
+    params.dToken.toHex(),
+    params.lunarPerSecond.toString(),
+    params.startTime.toString(),
+    params.endTime.toString(),
+    params.rewardAmount.toString(),
+  ]);
 
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
-  }
+  const lunarFarm = getLunarFarm(event.block);
+  const pool = getPool(params.pid, block);
+  pool.dToken = params.dToken;
+  pool.lunarPerSecond = params.lunarPerSecond;
+  pool.startTime = params.startTime;
+  pool.endTime = params.endTime;
+  pool.lunarAmount = params.rewardAmount;
+  pool.timestamp = block.timestamp;
+  pool.block = block.number;
 
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+  pool.save();
 
-  // Entity fields can be set based on event parameters
-  entity.user = event.params.user
-  entity.pid = event.params.pid
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.TEAM_REWARD(...)
-  // - contract.getMultiplier(...)
-  // - contract.lunar(...)
-  // - contract.owner(...)
-  // - contract.pendingLunar(...)
-  // - contract.poolInfo(...)
-  // - contract.poolLength(...)
-  // - contract.team(...)
-  // - contract.teamRewardAmount(...)
-  // - contract.userInfo(...)
+  lunarFarm.poolCount = lunarFarm.poolCount.plus(ONE);
+  lunarFarm.save();
 }
 
-export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {}
+export function handleDeposit(event: Deposit): void {
+  log.info("[LunarFarm] Deposit {} {} {} {}", [
+    event.params.user.toHex(),
+    event.params.pid.toString(),
+    event.params.amount.toString(),
+    event.params.to.toHex(),
+  ]);
 
-export function handleHarvest(event: Harvest): void {}
+  getLunarFarm(event.block);
+  const pool = getPool(event.params.pid, event.block);
+  const user = getUser(event.params.to, event.params.pid, event.block);
+
+  pool.depositAmount = pool.depositAmount.plus(event.params.amount);
+  pool.save();
+
+  user.amount = user.amount.plus(event.params.amount);
+  user.rewardDebt = user.rewardDebt.plus(event.params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
+  user.save();
+}
+
+export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
+  log.info("[LunarFarm] Log Emergency Withdraw {} {} {} {}", [
+    event.params.user.toHex(),
+    event.params.pid.toString(),
+    event.params.amount.toString(),
+    event.params.to.toHex(),
+  ]);
+
+  getLunarFarm(event.block);
+  const user = getUser(event.params.user, event.params.pid, event.block);
+
+  user.amount = ZERO;
+  user.rewardDebt = ZERO;
+  user.save();
+}
+
+export function handleHarvest(event: Harvest): void {
+  log.info("[MiniChef] Log Withdraw {} {} {}", [
+    event.params.user.toHex(),
+    event.params.pid.toString(),
+    event.params.amount.toString(),
+  ]);
+
+  getLunarFarm(event.block);
+  const pool = getPool(event.params.pid, event.block);
+  const user = getUser(event.params.user, event.params.pid, event.block);
+
+  let accumulatedLunar = user.amount.times(pool.accLunarPerShare).div(ACC_PRECISION);
+
+  user.rewardDebt = accumulatedLunar;
+  user.lunarHarvested = user.lunarHarvested.plus(event.params.amount);
+  user.save();
+}
+
+export function handleIncreasePoolEndTime(event: IncreasePoolEndTime): void {
+  const { params, block } = event;
+
+  getLunarFarm(block);
+  const pool = getPool(params.pid, block);
+  const lunarFarmContract = getLunarFarmContract();
+  const poolInfo = lunarFarmContract.poolInfo(params.pid);
+
+  pool.endTime = pool.endTime.plus(params.secs);
+  pool.lunarAmount = poolInfo.value7;
+  pool.save();
+}
 
 export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
 
-export function handleWithdraw(event: Withdraw): void {}
+export function handleUpdatePool(event: UpdatePool): void {
+  log.info("[LunarFarm] Log Update Pool {} {} {} {}", [
+    event.params.pid.toString(),
+    event.params.lastRewardTime.toString(), //uint64, I think this is Decimal but not sure
+    event.params.accLunarPerShare.toString(),
+  ]);
+
+  getLunarFarm(event.block);
+  const pool = getPool(event.params.pid, event.block);
+
+  pool.accLunarPerShare = event.params.accLunarPerShare;
+  pool.lastRewardTime = event.params.lastRewardTime;
+  pool.save();
+}
+
+export function handleWithdraw(event: Withdraw): void {
+  log.info("[LunarFarm] Log Withdraw {} {} {} {}", [
+    event.params.user.toHex(),
+    event.params.pid.toString(),
+    event.params.amount.toString(),
+    event.params.to.toHex(),
+  ]);
+
+  getLunarFarm(event.block);
+  const pool = getPool(event.params.pid, event.block);
+  const user = getUser(event.params.user, event.params.pid, event.block);
+
+  pool.depositAmount = pool.depositAmount.minus(event.params.amount);
+  pool.save();
+
+  user.amount = user.amount.minus(event.params.amount);
+  user.rewardDebt = user.rewardDebt.minus(event.params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
+  user.save();
+}
+
+export function handleWithdrawRemainingReward(event: WithdrawRemainingReward): void {}
