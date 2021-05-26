@@ -14,7 +14,8 @@ import {
 import { getLunarFarmContract, getLunarFarm, getPool, getUser, ZERO, ONE, ACC_PRECISION } from "./entities";
 
 export function handleAddPool(event: AddPool): void {
-  const { params, block } = event;
+  const params = event.params;
+  const block = event.block;
 
   log.info("[LunarFarm] AddPool({} {} {} {} {} {})", [
     params.pid.toString(),
@@ -42,35 +43,41 @@ export function handleAddPool(event: AddPool): void {
 }
 
 export function handleDeposit(event: Deposit): void {
+  const params = event.params;
+  const block = event.block;
+
   log.info("[LunarFarm] Deposit {} {} {} {}", [
-    event.params.user.toHex(),
-    event.params.pid.toString(),
-    event.params.amount.toString(),
-    event.params.to.toHex(),
+    params.user.toHex(),
+    params.pid.toString(),
+    params.amount.toString(),
+    params.to.toHex(),
   ]);
 
-  getLunarFarm(event.block);
-  const pool = getPool(event.params.pid, event.block);
-  const user = getUser(event.params.to, event.params.pid, event.block);
+  getLunarFarm(block);
+  const pool = getPool(params.pid, block);
+  const user = getUser(params.to, params.pid, block);
 
-  pool.depositAmount = pool.depositAmount.plus(event.params.amount);
+  pool.depositAmount = pool.depositAmount.plus(params.amount);
   pool.save();
 
-  user.amount = user.amount.plus(event.params.amount);
-  user.rewardDebt = user.rewardDebt.plus(event.params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
+  user.amount = user.amount.plus(params.amount);
+  user.rewardDebt = user.rewardDebt.plus(params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
   user.save();
 }
 
 export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
+  const params = event.params;
+  const block = event.block;
+
   log.info("[LunarFarm] Log Emergency Withdraw {} {} {} {}", [
-    event.params.user.toHex(),
-    event.params.pid.toString(),
-    event.params.amount.toString(),
-    event.params.to.toHex(),
+    params.user.toHex(),
+    params.pid.toString(),
+    params.amount.toString(),
+    params.to.toHex(),
   ]);
 
-  getLunarFarm(event.block);
-  const user = getUser(event.params.user, event.params.pid, event.block);
+  getLunarFarm(block);
+  const user = getUser(params.user, params.pid, block);
 
   user.amount = ZERO;
   user.rewardDebt = ZERO;
@@ -78,25 +85,25 @@ export function handleEmergencyWithdraw(event: EmergencyWithdraw): void {
 }
 
 export function handleHarvest(event: Harvest): void {
-  log.info("[MiniChef] Log Withdraw {} {} {}", [
-    event.params.user.toHex(),
-    event.params.pid.toString(),
-    event.params.amount.toString(),
-  ]);
+  const params = event.params;
+  const block = event.block;
 
-  getLunarFarm(event.block);
-  const pool = getPool(event.params.pid, event.block);
-  const user = getUser(event.params.user, event.params.pid, event.block);
+  log.info("[MiniChef] Log Withdraw {} {} {}", [params.user.toHex(), params.pid.toString(), params.amount.toString()]);
+
+  getLunarFarm(block);
+  const pool = getPool(params.pid, block);
+  const user = getUser(params.user, params.pid, block);
 
   let accumulatedLunar = user.amount.times(pool.accLunarPerShare).div(ACC_PRECISION);
 
   user.rewardDebt = accumulatedLunar;
-  user.lunarHarvested = user.lunarHarvested.plus(event.params.amount);
+  user.lunarHarvested = user.lunarHarvested.plus(params.amount);
   user.save();
 }
 
 export function handleIncreasePoolEndTime(event: IncreasePoolEndTime): void {
-  const { params, block } = event;
+  const params = event.params;
+  const block = event.block;
 
   getLunarFarm(block);
   const pool = getPool(params.pid, block);
@@ -111,37 +118,43 @@ export function handleIncreasePoolEndTime(event: IncreasePoolEndTime): void {
 export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
 
 export function handleUpdatePool(event: UpdatePool): void {
+  const params = event.params;
+  const block = event.block;
+
   log.info("[LunarFarm] Log Update Pool {} {} {} {}", [
-    event.params.pid.toString(),
-    event.params.lastRewardTime.toString(), //uint64, I think this is Decimal but not sure
-    event.params.accLunarPerShare.toString(),
+    params.pid.toString(),
+    params.lastRewardTime.toString(), //uint64, I think this is Decimal but not sure
+    params.accLunarPerShare.toString(),
   ]);
 
-  getLunarFarm(event.block);
-  const pool = getPool(event.params.pid, event.block);
+  getLunarFarm(block);
+  const pool = getPool(params.pid, block);
 
-  pool.accLunarPerShare = event.params.accLunarPerShare;
-  pool.lastRewardTime = event.params.lastRewardTime;
+  pool.accLunarPerShare = params.accLunarPerShare;
+  pool.lastRewardTime = params.lastRewardTime;
   pool.save();
 }
 
 export function handleWithdraw(event: Withdraw): void {
+  const params = event.params;
+  const block = event.block;
+
   log.info("[LunarFarm] Log Withdraw {} {} {} {}", [
-    event.params.user.toHex(),
-    event.params.pid.toString(),
-    event.params.amount.toString(),
-    event.params.to.toHex(),
+    params.user.toHex(),
+    params.pid.toString(),
+    params.amount.toString(),
+    params.to.toHex(),
   ]);
 
-  getLunarFarm(event.block);
-  const pool = getPool(event.params.pid, event.block);
-  const user = getUser(event.params.user, event.params.pid, event.block);
+  getLunarFarm(block);
+  const pool = getPool(params.pid, block);
+  const user = getUser(params.user, params.pid, block);
 
-  pool.depositAmount = pool.depositAmount.minus(event.params.amount);
+  pool.depositAmount = pool.depositAmount.minus(params.amount);
   pool.save();
 
-  user.amount = user.amount.minus(event.params.amount);
-  user.rewardDebt = user.rewardDebt.minus(event.params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
+  user.amount = user.amount.minus(params.amount);
+  user.rewardDebt = user.rewardDebt.minus(params.amount.times(pool.accLunarPerShare).div(ACC_PRECISION));
   user.save();
 }
 

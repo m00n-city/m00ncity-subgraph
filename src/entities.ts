@@ -45,7 +45,7 @@ export class LunarFarmEntity extends LunarFarm {
     return lunarFarm as LunarFarmEntity;
   }
 
-  updateAndSave({ block }) {
+  updateAndSave(block: ethereum.Block): void {
     this.timestamp = block.timestamp;
     this.block = block.number;
     this.save();
